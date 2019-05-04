@@ -1,0 +1,89 @@
+  
+    document.getElementById("file").disabled = true;
+    console.log('file details ::: ', file);
+    console.log("this is value of chunksUploaded ", chunksUploaded)
+    let fileSize = file.size;
+    const fileName = file.name;
+    partSize = 1024 * 1024 * 5;
+    let chunkSize = partSize;
+
+    let byteProcessed = 0;
+    let leftBytes = fileSize;
+    var numPartsLeft = Math.ceil(fileSize / partSize);
+
+    let start ;
+    let  chunksProcessed ;
+
+    // if (chunksUploaded == undefined) {
+
+        let partNum = 0;
+        // var totalSizeMB = fileSize / Math.pow(1024, 2);
+
+
+        console.log('number of parts left in client js ::: ', numPartsLeft);
+        if (partNum <= numPartsLeft) {
+                 let reader = new FileReader();
+               reader.onloadend = function (event) {
+                partNum += 1;
+
+                console.log("evt No :: ", partNum);
+
+                console.log('buffer value ::: ', event.target.result);
+                socket.emit('data', {
+                    fileKey: fileName,
+                    buffer: event.target.result,
+                    multipart: uploadToken,
+                    partNum: partNum,
+                    fileSize: fileSize,
+                    numPartsLeft: numPartsLeft,
+                    userid: userID
+                })
+            }
+
+         let   { start, chunksProcessed } = initRead(reader, file, fileSize, 0, chunkSize, leftBytes, byteProcessed);
+            leftBytes = leftBytes - chunksProcessed;
+            byteProcessed += chunksProcessed;
+
+        }
+    // }
+
+
+
+    // new code
+
+    if (chunksUploaded != undefined) {
+
+        
+         byteProcessed = chunksUploaded["chunksUploaded"];
+        let leftBytes = fileSize - (chunksUploaded["chunksUploaded"]*partSize) ;
+        var numPartsLeft = Math.ceil(leftBytes / partSize);
+
+        partNum = chunksUploaded["chunksUploaded"];
+        if (partNum <= numPartsLeft) {
+            let reader = new FileReader();
+            reader.onloadend = function (evt) {
+                partNum += 1;
+                let event = evt.target.result;
+                console.log("evt No :: ", partNum);
+                console.log('buffer value in client :::::::: ', evt.target.result);
+                if (event) {
+                    socket.emit('data', {
+                        fileKey: fileName,
+                        buffer: evt.target.result,
+                        multipart: uploadToken,
+                        partNum: partNum,
+                        fileSize: fileSize,
+                        numPartsLeft: numPartsLeft,
+                        userid: userID
+                    })
+                }
+
+            }
+        }
+
+        ({ start, chunksProcessed } = initRead(reader, file, fileSize, partNum, chunkSize, leftBytes, byteProcessed));
+        //({ start, chunksLeft, complete } = initRead(reader, file, fileSize, chunksUploaded, chunkSize, leftBytes, byteProcessed));
+        leftBytes = leftBytes - (chunksUploaded["remainingChunks"] + 1);
+        byteProcessed += (chunksUploaded["chunksUploaded"] + 1);
+        console.log("leftBytes : ", leftBytes, " byteprocessed ", byteProcessed)
+    }
